@@ -1,0 +1,87 @@
+$schema: https://azuremlschemas.azureedge.net/promptflow/latest/Flow.schema.json
+environment:
+  python_requirements_txt: requirements.txt
+inputs:
+  chat_history:
+    type: list
+    is_chat_history: true
+    default: []
+  question:
+    type: string
+    is_chat_input: true
+    default: ¿Que me puedes recomendar acerca de mis recursos?
+  customerId:
+    type: string
+    default: "1"
+outputs:
+  answer:
+    type: string
+    reference: ${llm_call.output}
+    is_chat_output: true
+  citations:
+    type: string
+    reference: ${rag_search.output}
+  customer_data:
+    type: string
+    reference: ${customer_lookup.output}
+  context:
+    type: string
+    reference: ${context.output}
+nodes:
+- name: llm_call
+  type: llm
+  source:
+    type: code
+    path: chat.jinja2
+  inputs:
+    deployment_name: gpt-4o
+    max_tokens: 512
+    temperature: 0.7
+    question: ${inputs.question}
+    prompt_text: ${customer_prompt.output}
+    history: ${inputs.chat_history}
+  connection: oai_lab_promptflow
+  api: chat
+- name: question_embeding
+  type: python
+  source:
+    type: package
+    tool: promptflow.tools.embedding.embedding
+  inputs:
+    connection: oai_lab_promptflow
+    input: ${inputs.question}
+    deployment_name: text-embedding-3-small
+- name: rag_search
+  type: python
+  source:
+    type: code
+    path: rag_search.py
+  inputs:
+    question: ${inputs.question}
+    index_name: azure-well-architected
+    embedding: ${question_embeding.output}
+    search: search_lab_promptflow
+- name: customer_lookup
+  type: python
+  source:
+    type: code
+    path: customer_lookup.py
+  inputs:
+    conn: cosmos_lab_promptflow
+    customerId: ${inputs.customerId}
+- name: customer_prompt
+  type: prompt
+  source:
+    type: code
+    path: customer_prompt.jinja2
+  inputs:
+    documentation: ${rag_search.output}
+    customer: ${customer_lookup.output}
+- name: context
+  type: python
+  source:
+    type: code
+    path: context.py
+  inputs:
+    citations: ${rag_search.output}
+    customer_data: ${customer_lookup.output}
