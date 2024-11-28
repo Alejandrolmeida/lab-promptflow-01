@@ -40,13 +40,13 @@ El repositorio está organizado en las siguientes carpetas:
 
 ## 📋 Actividades
 
-- [A00-Setup: Configuración inicial](00-Setup/README.md)
-- [A01-OpenAI-Connection: Introducción a Azure Open AI](01-OpenAI-Connection/README.md)
-- [A02-SimpleFlow: Introducción a PromptFlow](02-SimpleFlow/README.md)
-- [A03-Data: Diseñar un flujo personalizado: Datos](03-Data/README.md)
-- [A04-RAG: Diseñar un flujo personalizado: RAG](04-RAG/README.md)
-- [A05-Evaluate: Diseñar un flujo de evaluacion](05-Evaluate/README.md)
-- [A06-Publish: Publicar un flujo](`06-Publish/README.md)
+- [A00-Setup: Configuración inicial](A00-Setup/README.md)
+- [A01-OpenAI-Connection: Introducción a Azure Open AI](A01-OpenAI-Connection/README.md)
+- [A02-SimpleFlow: Introducción a PromptFlow](A02-SimpleFlow/README.md)
+- [A03-Data: Diseñar un flujo personalizado: Datos](A03-Data/README.md)
+- [A04-RAG: Diseñar un flujo personalizado: RAG](A04-RAG/README.md)
+- [A05-Evaluate: Diseñar un flujo de evaluacion](A05-Evaluate/README.md)
+- [A06-Publish: Publicar un flujo](A06-Publish/README.md)
 
 ## 🛠️ Requisitos
 
