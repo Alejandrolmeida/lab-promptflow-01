@@ -18,13 +18,13 @@ Cada actividad está documentada en un archivo `README.md` correspondiente dentr
 
 El repositorio está organizado en las siguientes carpetas:
 
-- **`00-Setup`**: Configuración inicial del laboratorio, incluyendo la creación de recursos en Azure.
-- **`01-OpenAI-Connection`**: Configuracion de Prompt-flow y creacion de la primera conexion.
-- **`02-SimpleFlow`**: Introducción a PromptFlow: crear y ejecutar un flujo básico.
-- **`03-Data`**: Diseñar un flujo personalizado: integrar datos externos con un modelo.
-- **`04-RAG`**: Diseñar un flujo personalizado: crear un RAG usando Functions con PromptFlow.
-- **`05-Evaluate`**: Diseñar un flujo de evaluacion.
-- **`06-Publish`**: Publicar un flujo en Azure AI Services.
+- **`A00-Setup`**: Configuración inicial del laboratorio, incluyendo la creación de recursos en Azure.
+- **`A01-OpenAI-Connection`**: Configuracion de Prompt-flow y creacion de la primera conexion.
+- **`A02-SimpleFlow`**: Introducción a PromptFlow: crear y ejecutar un flujo básico.
+- **`A03-Data`**: Diseñar un flujo personalizado: integrar datos externos con un modelo.
+- **`A04-RAG`**: Diseñar un flujo personalizado: crear un RAG usando Functions con PromptFlow.
+- **`A05-Evaluate`**: Diseñar un flujo de evaluacion.
+- **`A06-Publish`**: Publicar un flujo en Azure AI Services.
 
 ## 🚀 ¿Cómo empezar?
 
@@ -40,13 +40,13 @@ El repositorio está organizado en las siguientes carpetas:
 
 ## 📋 Actividades
 
-- [00-Setup: Configuración inicial](00-Setup/README.md)
-- [01-OpenAI-Connection: Introducción a Azure Open AI](01-OpenAI-Connection/README.md)
-- [02-SimpleFlow: Introducción a PromptFlow](02-SimpleFlow/README.md)
-- [03-Data: Diseñar un flujo personalizado: Datos](03-Data/README.md)
-- [04-RAG: Diseñar un flujo personalizado: RAG](04-RAG/README.md)
-- [05-Evaluate: Diseñar un flujo de evaluacion](05-Evaluate/README.md)
-- [06-Publish: Publicar un flujo](`06-Publish/README.md)
+- [A00-Setup: Configuración inicial](00-Setup/README.md)
+- [A01-OpenAI-Connection: Introducción a Azure Open AI](01-OpenAI-Connection/README.md)
+- [A02-SimpleFlow: Introducción a PromptFlow](02-SimpleFlow/README.md)
+- [A03-Data: Diseñar un flujo personalizado: Datos](03-Data/README.md)
+- [A04-RAG: Diseñar un flujo personalizado: RAG](04-RAG/README.md)
+- [A05-Evaluate: Diseñar un flujo de evaluacion](05-Evaluate/README.md)
+- [A06-Publish: Publicar un flujo](`06-Publish/README.md)
 
 ## 🛠️ Requisitos
 
