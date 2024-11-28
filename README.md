@@ -1,3 +1,6 @@
+![Workshop Azure OpenAI](data/media.webp)
+
+
 # Workshop: Azure OpenAI y Microsoft PromptFlow
 
 ¡Bienvenido al laboratorio práctico de **Azure OpenAI** y **Microsoft PromptFlow**! Este repositorio contiene todos los recursos necesarios para aprender a integrar, desarrollar y gestionar aplicaciones de inteligencia artificial utilizando Azure OpenAI y PromptFlow.
