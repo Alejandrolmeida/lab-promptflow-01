@@ -1,86 +1,139 @@
-# Chat flow
-Chat flow is designed for conversational application development, building upon the capabilities of standard flow and providing enhanced support for chat inputs/outputs and chat history management. With chat flow, you can easily create a chatbot that handles chat input and output.
+# **Flujo de Tipo RAG en PromptFlow**
 
-## Create connection for LLM tool to use
-You can follow these steps to create a connection required by a LLM tool.
+---
 
-Currently, there are two connection types supported by LLM tool: "AzureOpenAI" and "OpenAI". If you want to use "AzureOpenAI" connection type, you need to create an Azure OpenAI service first. Please refer to [Azure OpenAI Service](https://azure.microsoft.com/en-us/products/cognitive-services/openai-service/) for more details. If you want to use "OpenAI" connection type, you need to create an OpenAI account first. Please refer to [OpenAI](https://platform.openai.com/) for more details.
+## **Paso 1: Crear un flujo con plantilla de chat**
+1. Selecciona la plantilla de tipo *Chat* al crear el flujo.
+2. Nombra el flujo y configúralo con tu conexión de OpenAI.
 
-```bash
-# Override keys with --set to avoid yaml file changes
-# Create open ai connection
-pf connection create --file openai.yaml --set api_key=<your_api_key> --name open_ai_connection
+---
 
-# Create azure open ai connection
-# pf connection create --file azure_openai.yaml --set api_key=<your_api_key> api_base=<your_api_base> --name open_ai_connection
-```
+## **Paso 2: Agregar herramientas al flujo**
 
-Note in [flow.dag.yaml](flow.dag.yaml) we are using connection named `open_ai_connection`.
-```bash
-# show registered connection
-pf connection show --name open_ai_connection
-```
-Please refer to connections [document](https://promptflow.azurewebsites.net/community/local/manage-connections.html) and [example](https://github.com/microsoft/promptflow/tree/main/examples/connections) for more details.
+### **Tool 1: Embeddings (question_embedding)**
+1. Agrega una tool de tipo embeddings.
+2. Configura las propiedades:
+   - **Input**: `inputs.question`.
+   - **Connection**: `oai_lab_promptflow`.
+   - **Deployment name**: Especifica el nombre de tu modelo.
 
-## Develop a chat flow
+### **Tool 2: Búsqueda RAG (rag_search)**
+1. Crea una tool de tipo Python y edita su código:
+   - Cambia el nombre del archivo a `rag_search.py`.
+   - Actualiza la firma de la función:
+     ```python
+     def my_python_tool(question: str, index_name: str, embedding: List[float], search: CognitiveSearchConnection) -> str:
+     ```
+   - Agrega los imports necesarios:
+     ```python
+     from promptflow import tool
+     from typing import List
+     from azure.search.documents import SearchClient
+     from azure.search.documents.models import VectorizedQuery, QueryType, QueryCaptionType, QueryAnswerType
+     from azure.core.credentials import AzureKeyCredential
+     from promptflow.connections import CognitiveSearchConnection
+     ```
+   - Implementa la lógica en la función:
+     ```python
+     @tool
+     def my_python_tool(question: str, index_name: str, embedding: List[float], search: CognitiveSearchConnection) -> str:
+         search_client = SearchClient(endpoint=search.api_base, 
+                                      index_name=index_name, 
+                                      credential=AzureKeyCredential(search.api_key))
 
-The most important elements that differentiate a chat flow from a standard flow are **Chat Input**, **Chat History**, and **Chat Output**.
+         vector_query = VectorizedQuery(vector=embedding, 
+                                        k_nearest_neighbors=3, 
+                                        fields="embedding")
 
-- **Chat Input**: Chat input refers to the messages or queries submitted by users to the chatbot. Effectively handling chat input is crucial for a successful conversation, as it involves understanding user intentions, extracting relevant information, and triggering appropriate responses.
+         results = search_client.search(  
+             search_text=question,  
+             vector_queries=[vector_query],
+             query_type=QueryType.SEMANTIC, 
+             semantic_configuration_name='default', 
+             query_caption=QueryCaptionType.EXTRACTIVE, 
+             query_answer=QueryAnswerType.EXTRACTIVE,
+             top=5
+         )
 
-- **Chat History**: Chat history is the record of all interactions between the user and the chatbot, including both user inputs and AI-generated outputs. Maintaining chat history is essential for keeping track of the conversation context and ensuring the AI can generate contextually relevant responses. Chat History is a special type of chat flow input, that stores chat messages in a structured format.
+         docs = [{"id": doc["id"],  "content": doc["content"]} for doc in results]
+         return docs
+     ```
 
-- **Chat Output**: Chat output refers to the AI-generated messages that are sent to the user in response to their inputs. Generating contextually appropriate and engaging chat outputs is vital for a positive user experience.
+### **Tool 3: Consulta a Cosmos DB (customer_lookup)**
+1. Agrega otra tool de tipo Python y nómbrala `customer_lookup`.
+2. Copia el siguiente código:
+   ```python
+   from promptflow import tool
+   from azure.cosmos import CosmosClient
+   from promptflow.connections import CustomConnection
 
-A chat flow can have multiple inputs, but Chat History and Chat Input are required inputs in chat flow.
+   @tool
+   def my_python_tool(customerId: str, conn: CustomConnection) -> str:
+       client = CosmosClient(url=conn.configs["endpoint"], credential=conn.secrets["key"])
+       db = client.get_database_client(conn.configs["databaseId"])
+       container = db.get_container_client(conn.configs["containerId"])
+       response = container.read_item(item=customerId, partition_key=customerId)
+       services = response["services"]
+       services = sorted(services, key=lambda x: x["Severity"], reverse=True)
+       response["services"] = services[-3:]
+       return response
+   ```
+3. Configura:
+   - **Input**: `inputs.customerId`.
+   - **Connection**: Objeto de conexión de Cosmos DB.
 
-## Interact with chat flow
+---
 
-Promptflow CLI provides a way to start an interactive chat session for chat flow. Customer can use below command to start an interactive chat session:
+## **Paso 3: Configurar la plantilla Prompt (customer_prompt)**
+1. Agrega una tool de tipo Prompt y edita el archivo `jinja`.
+2. Introduce el siguiente contenido:
+   ```jinja
+   # Task
+   You are an AI customer support agent for Azurebrains, a community of Azure experts...
+   # Documentation
+   {% for item in documentation %}
+   item number: {{item.id}}
+   ...
+   {% endfor %}
+   # Customer Insights
+   {% for item in customer.services %}
+   type: {{item.Type}}
+   ...
+   {% endfor %}
+   # Customer Context
+   The customer's name is {{customer.name}} ...
+   ```
+3. Configura:
+   - **Documentation**: `rag_search.output`.
+   - **Customer**: `customer_lookup.output`.
 
-```
-pf flow test --flow <flow_folder> --interactive
-```
+---
 
-After executing this command, customer can interact with the chat flow in the terminal. Customer can press **Enter** to send the message to chat flow. And customer can quit with **ctrl+C**.
-Promptflow CLI will distinguish the output of different roles by color, <span style="color:Green">User input</span>, <span style="color:Gold">Bot output</span>, <span style="color:Blue">Flow script output</span>, <span style="color:Cyan">Node output</span>.
+## **Paso 4: Configurar el objeto de chat**
+1. Renombra el objeto a `llm_call`.
+2. Ajusta las propiedades:
+   - **Connection**: Tu conexión OpenAI.
+   - **Deployment name**: `gpt-4o`.
+   - **Max tokens**: 512.
+3. Modifica el archivo Jinja:
+   ```jinja
+   system:
+   {{prompt_text}}
 
-> =========================================<br>
-> Welcome to chat flow, <You-flow-name>.<br>
-> Press Enter to send your message.<br>
-> You can quit with ctrl+C.<br>
-> =========================================<br>
-> <span style="color:Green">User:</span> What types of container software there are<br>
-> <span style="color:Gold">Bot:</span> There are several types of container software available, including:<br>
-> 1. Docker: This is one of the most popular containerization software that allows developers to package their applications into containers and deploy them across different environments.<br>
-> 2. Kubernetes: This is an open-source container orchestration platform that automates the deployment, scaling, and management of containerized applications.<br>
->
-> <span style="color:Green">User:</span> What's the different between them<br>
-> <span style="color:Gold">Bot:</span> The main difference between the various container software systems is their functionality and purpose. Here are some key differences between them:<br>
-> 1. Docker is more focused on container packaging and deployment, while Kubernetes is more focused on container orchestration and management.<br>
-> 2. Kubernetes: Kubernetes is a container orchestration tool that helps manage and deploy containers at scale. It automates the deployment, scaling, and management of containerized applications across multiple hosts.<br>
+   {% for item in history %}
+   user:
+   {{item.inputs.question}}
 
-If customer adds "--verbose" in the pf command, the output of each step will be displayed.
+   assistant:
+   {{item.outputs.answer}} 
+   {% endfor %}
 
-> =========================================<br>
-> Welcome to chat flow, Template Chat Flow.<br>
-> Press Enter to send your message.<br>
-> You can quit with ctrl+C.<br>
-> =========================================<br>
-> <span style="color:Green">User:</span> What types of container software there are<br>
-> <span style="color:Cyan">chat:</span> There are several types of container software available, including:<br>
-> 1. Docker: A popular container platform that is widely used in the industry.<br>
-> 2. Kubernetes: A container orchestration tool that helps manage and deploy containers at scale.<br>
->
-> <span style="color:Gold">Bot:</span> There are several types of container software available, including:<br>
-> 1. Docker: A popular container platform that is widely used in the industry.<br>
-> 2. Kubernetes: A container orchestration tool that helps manage and deploy containers at scale.<br>
->
-> <span style="color:Green">User:</span> What's the different between them<br>
-> <span style="color:Cyan">chat:</span> The main differences between container software are in their architecture, feature sets, and use cases. Here are some brief explanations of the differences between the examples I listed:<br>
-> 1. Docker: Docker is a container platform that is widely used for building, packaging, and deploying containerized applications. It is known for its ease of use, portability, and large ecosystem of tools and services.<br>
-> 2. Kubernetes: Kubernetes is a container orchestration tool that helps manage and deploy containers at scale. It automates the deployment, scaling, and management of containerized applications across multiple hosts.<br>
->
-> <span style="color:Gold">Bot:</span> The main differences between container software are in their architecture, feature sets, and use cases. Here are some brief explanations of the differences between the examples I listed:<br>
-> 1. Docker: Docker is a container platform that is widely used for building, packaging, and deploying containerized applications. It is known for its ease of use, portability, and large ecosystem of tools and services.<br>
-> 2. Kubernetes: Kubernetes is a container orchestration tool that helps manage and deploy containers at scale. It automates the deployment, scaling, and management of containerized applications across multiple hosts.<br>
+   user:
+   {{question}}
+   Please be brief, use my name in the response, reference 
+   previous purchases, and add emojis for personalization and flair.
+   ```
+
+---
+
+Este flujo combina búsquedas avanzadas con RAG y consultas a Cosmos DB, proporcionando un asistente efectivo y personalizado. ¡Estás listo para implementarlo en PromptFlow! 🚀
